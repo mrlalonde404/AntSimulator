@@ -15,6 +15,15 @@ export default class Pheromone {
 
         // how long the pheromone lasts
         this._life = 160.0;
+        this._originalLife = this._life;
+    }
+
+    get position() {
+        return this._position;
+    }
+
+    get size() {
+        return this._size;
     }
 
     get toHome()  {
@@ -25,6 +34,19 @@ export default class Pheromone {
         return this._life;
     }
 
+    get originalLife() {
+        return this._originalLife;
+    }
+
+    set position(pos) {
+        this._position.x = pos.x;
+        this._position.y = pos.y;
+    }
+
+    set size(s) {
+        this._size = s;
+    }
+
     set toHome(h) {
         this._toHome = h;
     }
@@ -33,19 +55,24 @@ export default class Pheromone {
         this._life = l;
     }
 
+    set originalLife(ol) {
+        this._originalLife = ol;
+    }
+
     // keep removing a fraction of the life as the delta continues
     update(delta) {
-        this._life -= (1/delta);
+        this.life -= (1/delta);
     }
     
     draw(ctx) {
         ctx.beginPath();
-        if (this._toHome){
-            ctx.fillStyle = "blue";
+        // alpha effect shows the intensity of the life left in each pheromone, the lighter they are the weaker the intensity
+        if (this.toHome){
+            ctx.fillStyle = `rgba(0, 0, 255, ${this.life / this.originalLife})`;
         } else {
-            ctx.fillStyle = "purple";
+            ctx.fillStyle = `rgba(255, 0, 255, ${this.life  / this.originalLife})`;
         }
-        ctx.arc(this._position.x, this._position.y, this._size, 0, 2 * Math.PI);
+        ctx.arc(this.position.x, this.position.y, this.size, 0, 2 * Math.PI);
         ctx.fill();
         ctx.closePath();
     }

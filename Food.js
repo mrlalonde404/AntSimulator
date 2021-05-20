@@ -29,7 +29,7 @@ export default class Food {
     draw(ctx) {
         ctx.beginPath();
         ctx.fillStyle = "green";
-        ctx.arc(this._position.x, this._position.y, this._size, 0, 2 * Math.PI);
+        ctx.arc(this.position.x, this.position.y, this.size, 0, 2 * Math.PI);
         ctx.fill();
         ctx.closePath();
     }

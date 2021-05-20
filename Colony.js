@@ -85,62 +85,55 @@ export default class Colony {
         this._size = s;
     }
 
-    makeColonyAnts() {
+    makeColonyAnts(antSize) {
         // find the radian increment for the entire circle split up by the number of ants
-        let dir_incr = (Math.PI * 2) / this._numAnts;
-
-        // size for the ants
-        let antSize = 10;
+        let dirIncr = (Math.PI * 2) / this.numAnts;
     
-        // make all the ants with a direction to where they should all make a cicel going outwards
-        for (let i = 0; i < this._numAnts; i++){
-            let dir = (i+1) * dir_incr;
-            let ax = this._position.x + (this._size * Math.cos(dir));
-            let ay = this._position.y + (this._size * Math.sin(dir));
-            this._ants.push(new Ant(ax, ay, this._species, dir, antSize));
+        // make all the ants with a direction to where they should all make a circle going outwards
+        for (let i = 0; i < this.numAnts; i++){
+            let dir = (i+1) * dirIncr;
+            let ax = this.position.x + (this.size * Math.cos(dir));
+            let ay = this.position.y + (this.size * Math.sin(dir));
+            this.ants.push(new Ant(ax, ay, this.species, dir, antSize));
         }
     }
 
-    update(delta, canvas_size, ctx, foodPieces) {
-        // update the ants and then draw them
-        for (let i = 0; i < this._ants.length; i++){
-            // make every ant wander, this updates the food pheromones, home pheromones, and the food pieces
-            let retArr = this._ants[i].wander(this._toFoodPheromones, this._toHomePheromones, foodPieces, this._position, this._size);
+    update(delta, canvasSize, ctx, foodPieces) {
+         // update the pheromones and then draw them
+         for (let i = 0; i < this.toFoodPheromones.length; i++){
+            this.toFoodPheromones[i].update(delta);
+            this.toFoodPheromones[i].draw(ctx);
+            if (this.toFoodPheromones[i].life < 0) {
+                this.toFoodPheromones.splice(i, 1);
+                i--;
+            }
+        }
+        for (let i = 0; i < this.toHomePheromones.length; i++){
+            this.toHomePheromones[i].update(delta);
+            this.toHomePheromones[i].draw(ctx);
+            if (this.toHomePheromones[i].life < 0) {
+                this.toHomePheromones.splice(i, 1);
+                i--;
+            }
+        }
 
-            // use the return array to update the pheromones and food pieces
-            this._toFoodPheromones = retArr[0];
-            this._toHomePheromones = retArr[1];
-            foodPieces = retArr[2];
+        // update the ants and then draw them
+        for (let i = 0; i < this.ants.length; i++){
+            // make every ant wander, this updates the food pheromones, home pheromones, and the food pieces, no need to return since wander gets a copy of the objects refererences
+            this.ants[i].wander(this.toFoodPheromones, this.toHomePheromones, foodPieces, this.position, this.size);
+            //console.log(this.toFoodPheromones.length, this.toHomePheromones.length, foodPieces.length);
 
             // update the ants, let them wrap around the borders, and draw them
-            this._ants[i].update(delta);
-            this._ants[i].wrapEdges(canvas_size);
-            this._ants[i].draw(ctx);
-        }
-
-        // update the pheromones and then draw them
-        for (let i = 0; i < this._toFoodPheromones.length; i++){
-            this._toFoodPheromones[i].update(delta);
-            this._toFoodPheromones[i].draw(ctx);
-            if (this._toFoodPheromones[i].life < 0) {
-                this._toFoodPheromones.splice(i, 1);
-                i--;
-            }
-        }
-        for (let i = 0; i < this._toHomePheromones.length; i++){
-            this._toHomePheromones[i].update(delta);
-            this._toHomePheromones[i].draw(ctx);
-            if (this._toHomePheromones[i].life < 0) {
-                this._toHomePheromones.splice(i, 1);
-                i--;
-            }
-        }
+            this.ants[i].update(delta);
+            this.ants[i].wrapEdges(canvasSize);
+            this.ants[i].draw(ctx);
+        }       
     }
 
     draw(ctx) {
         ctx.beginPath();
         ctx.fillStyle = "blue";
-        ctx.arc(this._position.x, this._position.y, this._size, 0, 2 * Math.PI);
+        ctx.arc(this.position.x, this.position.y, this.size, 0, 2 * Math.PI);
         ctx.fill();
         ctx.closePath();
     }

@@ -22,7 +22,7 @@ const mouse = {
 };
 
 // the first colony
-const colony1 = new Colony(canvas.width/2, canvas.height/2, "sugar", 30);
+const colony1 = new Colony(canvas.width/2, canvas.height/2, "sugar", 1);
 
 // objects lists for the walls, and food in the world
 const walls = [];
@@ -71,7 +71,8 @@ window.addEventListener('click', function(event){
 // -- End of event listeners
 
 function setup() {
-    colony1.makeColonyAnts();
+    // make the first colony's ants with a size of 10
+    colony1.makeColonyAnts(10);
     gameLoop();
 }
 
@@ -81,7 +82,7 @@ function handleWalls() {
     }
 }
 
-function handleFood() {
+function drawFoodPieces() {
     for (let i = 0; i < foodPieces.length; i++){
         foodPieces[i].draw(ctx);
     }
@@ -105,7 +106,7 @@ function gameLoop(timeStamp) {
     colony1.draw(ctx);
 
     // draw all the food after the colony so that the food will be drawn over the ants that are holding the food pieces
-    handleFood();
+    drawFoodPieces();
 
     //fps = Math.floor(1000/delta);
     //console.log(fps);
