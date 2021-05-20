@@ -5,12 +5,16 @@ export default class Pheromone {
             x: pos.x,
             y: pos.y
         };
-        this._size = 3;
 
+        // how big the pheromone ball is
+        this._size = 5;
+
+        // if the pheromone is for going towards the home, the colony, true means yes it is, 
+        // false means it is leaving toFood markers from the food back towards the colony
         this._toHome = th;
 
         // how long the pheromone lasts
-        this._life = 210.0;
+        this._life = 160.0;
     }
 
     get toHome()  {
@@ -21,8 +25,8 @@ export default class Pheromone {
         return this._life;
     }
 
-    set toHome(th) {
-        this._toHome = th;
+    set toHome(h) {
+        this._toHome = h;
     }
 
     set life(l) {

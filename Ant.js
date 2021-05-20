@@ -11,7 +11,7 @@ export default class Ant {
         };
         
         // the fastest speed the ant should be allowed to move
-        this._maxSpeed = 10;
+        this._maxSpeed = 15;
 
         // this is the direction that the ant is facing
         this._dir = d;
@@ -90,17 +90,25 @@ export default class Ant {
     }
 
     wrapEdges(canvasSize) {
+        let change = false;
         if (this._position.x + this._size > canvasSize.width){
-            this._position.x = this._size;
+            change = true;
         }
         if (this._position.x - this._size < 0){
-            this._position.x = canvasSize.width - this._size;
+            change = true;
         }
         if (this._position.y + this._size > canvasSize.height){
-            this._position.y = this._size;
+            change = true;
         }
-        if (this._position.y - this._size > canvasSize.height){
-            this._position.x = canvasSize.height - this._size;
+        if (this._position.y - this._size < 0){
+            change = true;
+        }
+        if (change){
+            this._dir += Math.PI;
+            this._velocity = {
+                x: this._maxSpeed * Math.cos(this._dir),
+                y: this._maxSpeed * Math.sin(this._dir)
+            };
         }
     }
 
@@ -120,40 +128,77 @@ export default class Ant {
     }
 
     // how the ant will wander around the screen looking for pheromones
-    wander(pheromones, foodPieces, colony,Pos, colonySize) {
-        if (this.foodCarried.length == 0) {
+    wander(foodPheromones, homePheromones, foodPieces, colonyPos, colonySize) {
+        if (this._foodCarried.length === 0) {
             // if the ant doesn't have food, look for it leaving toHome pheromones from the colony until it finds food
             if (this._frame != 0 && this._frame % 60 == 0) {
-                pheromones.push(new Pheromone(this._position, true));
+                homePheromones.push(new Pheromone(this._position, true));
             }
 
             // if the ant is near some pheromones follow them, steer the direction towards the pheromone
 
             // if the ant collides with the food, pick it up
+            for (let i = 0; i < foodPieces.length; i++){
+                // get the difference in x and y between the food piece and the ant's center positions
+                let dx = this._position.x - foodPieces[i].position.x;
+                let dy = this._position.y - foodPieces[i].position.y;
+
+                // use the dx and dy to find the distance using the pythagorean theorem
+                let dist = Math.sqrt(dx*dx + dy*dy);
+
+                // if the distance between the food center and the ant center is less than both of their radius added together, their circles are overlapping, they collided 
+                if (dist <= (foodPieces[i].size + this._size)) {
+                    this._foodCarried.push(foodPieces[i]);
+                    //console.log("ant food collision");
+                }
+            }
             
         } else {
             // if the ant does have the food, start heading back to the colony following the pheromones that originated at the colony
-            // update the food location that the ant is carrying
-            if (this.foodCarried.length > 0) {
-                for (let i = 0; i < this.foodCarried.length; i++) {
-                    // make the new food location at the front of the ant by adding the x and y components of the ant size and direction to the ant position
-                    let foodLocation = {
-                        x: this._position.x + (this._size * Math.cos(this._dir)),
-                        y: this._position.y + (this._size * Math.sin(this._dir))
-                    }
-                    // set the food location to the location calculated above
-                    this.foodCarried[i].position = foodLocation;
+            // update the food location that the ant is carrying    
+            for (let i = 0; i < this._foodCarried.length; i++) {
+                // make the new food location at the front of the ant by adding the x and y components of the ant size and direction to the ant position
+                let foodLocation = {
+                    x: this._position.x + (this._size * Math.cos(this._dir)),
+                    y: this._position.y + (this._size * Math.sin(this._dir))
                 }
+
+               // set the food location to the location calculated above
+               this._foodCarried[i].position = foodLocation;
             }
+
             // leave to food pheromones(toHome == false) pheromones from the ant from the food back to the colony
             if (this._frame != 0 && this._frame % 60 == 0) {
-                pheromones.push(new Pheromone(this._position, false));
+                foodPheromones.push(new Pheromone(this._position, false));
             }
+
             // follow the toHome pheromones back to the colony
 
             // when the ant collides with the colony, remove the food object from the foodPieces list and this ant's foodCarried list
+            let dx = this._position.x - colonyPos.x;
+            let dy = this._position.y - colonyPos.y;
+            let dist = Math.sqrt(dx*dx + dy*dy);
+
+            // see if the colony circle and the ant circle overlap
+            if (dist <= (this._size + colonySize)){
+                // get the food piece to remove from the food pieces list
+                let f = this._foodCarried[0];
+
+                // loop through the food pieces list until the piece is found and then remove it from the list
+                for (let i = 0; i < foodPieces.length; i++){
+                    if (foodPieces[i] == f) {
+                        foodPieces.splice(i, 1);
+                        break;
+                    }
+                }
+
+                // emty the list of food pieces the ant is carrying
+                this._foodCarried = [];
+                //console.log("ant collided with colony while holding food");
+                //console.log("new food pieces length: ", foodPieces.length);
+            }
         }
-        return [pheromones, foodPieces];
+        return [foodPheromones, homePheromones, foodPieces];
     }
     
     draw(ctx) {

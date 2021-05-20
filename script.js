@@ -21,7 +21,7 @@ const mouse = {
 };
 
 // the first colony
-const colony1 = new Colony(canvas.width/2, canvas.height/2, "sugar", 25);
+const colony1 = new Colony(canvas.width/2, canvas.height/2, "sugar", 12);
 
 // objects lists for the walls, and food in the world
 const walls = [];
@@ -32,6 +32,8 @@ let lastTime = 0.0;
 
 // the fps to be printed to the console
 let fps = 0.0;
+
+const numFoodWhenClicked = 10;
 
 // -- Event listeners
 
@@ -48,14 +50,21 @@ window.addEventListener('resize', function(){
 });
 
 // make food at the mouse location when the mouse is clicked
-window.addEventListener('mousedown', function(event){
+window.addEventListener('click', function(event){
     // update the mouse object
     mouse.x = event.x;
     mouse.y = event.y;
 
     // make a food object at the mouse click position
-    foodPieces.push(new Food(mouse));
-    console.log(foodPieces.length);
+    for (let i = 0; i < numFoodWhenClicked; i++){
+        let pos = {
+            x: mouse.x + Math.floor(Math.random() * 11 - 5), 
+            y: mouse.y + Math.floor(Math.random() * 11 - 5)
+        };
+        foodPieces.push(new Food(pos));
+    }
+    console.log("number of food pieces: ", foodPieces.length);
+    //console.log("mouse: ", mouse.x, mouse.y)
 });
 
 // -- End of event listeners
@@ -90,12 +99,12 @@ function gameLoop(timeStamp) {
     // draw all the walls and handle their collisions with ants
     //handleWalls();
 
-    // draw all the food
-    handleFood();
-
     // update and draw the first colony
-    colony1.update(delta, canvasSize, ctx);
+    colony1.update(delta, canvasSize, ctx, foodPieces);
     colony1.draw(ctx);
+
+    // draw all the food after the colony so that the food will be drawn over the ants that are holding the food pieces
+    handleFood();
 
     fps = Math.floor(1000/delta);
     //console.log(fps);

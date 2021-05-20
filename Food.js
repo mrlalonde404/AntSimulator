@@ -5,7 +5,7 @@ export default class Food {
             x: pos.x,
             y: pos.y
         };
-        this._size = 3;
+        this._size = 5;
     }
 
     get position() {
