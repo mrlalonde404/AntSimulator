@@ -99,17 +99,28 @@ export default class Ant {
         }
         if (this._position.y + this._size > canvasSize.height){
             change = true;
+            console.log(this);
         }
         if (this._position.y - this._size < 0){
             change = true;
         }
         if (change){
-            this._dir += Math.PI;
-            this._velocity = {
-                x: this._maxSpeed * Math.cos(this._dir),
-                y: this._maxSpeed * Math.sin(this._dir)
-            };
+            this.flipDir();
         }
+    }
+
+    // when the dir is changed, use this function to get the new x and y components from that new direction
+    calculateSpeed() {
+        this._velocity = {
+            x: this._maxSpeed * Math.cos(this._dir),
+            y: this._maxSpeed * Math.sin(this._dir)
+        };
+    }
+
+    // change the direction by adding pi radians to the direction to turn completely around
+    flipDir(){
+        this._dir += Math.PI;
+        this.calculateSpeed();
     }
 
     update(delta) {
@@ -149,6 +160,9 @@ export default class Ant {
                 // if the distance between the food center and the ant center is less than both of their radius added together, their circles are overlapping, they collided 
                 if (dist <= (foodPieces[i].size + this._size)) {
                     this._foodCarried.push(foodPieces[i]);
+
+                    // if the ant just picked up some food, turn around and start heading back to the colony
+                    this.flipDir();
                     //console.log("ant food collision");
                 }
             }
@@ -173,6 +187,7 @@ export default class Ant {
             }
 
             // follow the toHome pheromones back to the colony
+            
 
             // when the ant collides with the colony, remove the food object from the foodPieces list and this ant's foodCarried list
             let dx = this._position.x - colonyPos.x;
@@ -194,8 +209,10 @@ export default class Ant {
 
                 // emty the list of food pieces the ant is carrying
                 this._foodCarried = [];
+                
+                // if the ant just came from a food source and hit the colony, it should turn around and head back to the food source
+                this.flipDir();
                 //console.log("ant collided with colony while holding food");
-                //console.log("new food pieces length: ", foodPieces.length);
             }
         }
         return [foodPheromones, homePheromones, foodPieces];

@@ -10,9 +10,10 @@ canvas.height = window.innerHeight;
 
 // make an object called canvasSize to hold the size of the canvas
 let canvasSize = {
-    width: canvas.width,
-    heigth: canvas.height
+    width: window.innerWidth,
+    height: window.innerHeight
 };
+
 
 // make a mouse object
 const mouse = {
@@ -21,7 +22,7 @@ const mouse = {
 };
 
 // the first colony
-const colony1 = new Colony(canvas.width/2, canvas.height/2, "sugar", 12);
+const colony1 = new Colony(canvas.width/2, canvas.height/2, "sugar", 30);
 
 // objects lists for the walls, and food in the world
 const walls = [];
@@ -44,8 +45,8 @@ window.addEventListener('resize', function(){
 
     // update the canvasSize object
     canvasSize = {
-        width: canvas.width,
-        height: canvas.height
+        width: window.innerWidth,
+        height: window.innerHeight
     };
 });
 
@@ -64,7 +65,7 @@ window.addEventListener('click', function(event){
         foodPieces.push(new Food(pos));
     }
     console.log("number of food pieces: ", foodPieces.length);
-    //console.log("mouse: ", mouse.x, mouse.y)
+    console.log("mouse: ", mouse.x, mouse.y);
 });
 
 // -- End of event listeners
@@ -106,7 +107,7 @@ function gameLoop(timeStamp) {
     // draw all the food after the colony so that the food will be drawn over the ants that are holding the food pieces
     handleFood();
 
-    fps = Math.floor(1000/delta);
+    //fps = Math.floor(1000/delta);
     //console.log(fps);
     
     // get a new frame for the game loop
