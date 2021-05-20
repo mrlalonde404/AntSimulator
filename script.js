@@ -34,7 +34,8 @@ let lastTime = 0.0;
 // the fps to be printed to the console
 let fps = 0.0;
 
-const numFoodWhenClicked = 10;
+const numFoodWhenClicked = 20;
+const foodSpawnRange = 30;
 
 // -- Event listeners
 
@@ -59,8 +60,8 @@ window.addEventListener('click', function(event){
     // make a food object at the mouse click position
     for (let i = 0; i < numFoodWhenClicked; i++){
         let pos = {
-            x: mouse.x + Math.floor(Math.random() * 11 - 5), 
-            y: mouse.y + Math.floor(Math.random() * 11 - 5)
+            x: mouse.x + (Math.floor(Math.random() * (foodSpawnRange * 2 + 1)) - foodSpawnRange), 
+            y: mouse.y + (Math.floor(Math.random() * (foodSpawnRange * 2 + 1)) - foodSpawnRange)
         };
         foodPieces.push(new Food(pos));
     }

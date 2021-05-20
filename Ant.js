@@ -27,6 +27,11 @@ export default class Ant {
 
         this._viewRange = 50;
 
+        this._viewRangePosition = {
+            x: this._position.x + (this._viewRange * Math.cos(this._dir)),
+            y: this._position.y + (this._viewRange * Math.sin(this._dir))
+        }
+
         // this should be the food item that is picked up from the food source and brought back to the colony 
         this._foodCarried = [];
 
@@ -59,6 +64,10 @@ export default class Ant {
 
     get viewRange() {
         return this._viewRange;
+    }
+
+    get viewRangePosition() {
+        return this._viewRangePosition;
     }
 
     get foodCarried() {  
@@ -99,6 +108,11 @@ export default class Ant {
         this._viewRange = vr;
     }
 
+    set viewRangePosition(vrp) {
+        this._viewRangePosition = vrp.x;
+        this._viewRangePosition = vrp.y;
+    }
+
     set foodCarried(carried) {
         this._foodCarried = carried;
     }
@@ -108,21 +122,17 @@ export default class Ant {
     }
 
     wrapEdges(canvasSize) {
-        let change = false;
         if (this.position.x + this.size > canvasSize.width) {
-            change = true;
+            this.position.x = this.size;
         }
         if (this.position.x - this.size < 0) {
-            change = true;
+            this.position.x = canvasSize.width - this.size;
         }
         if (this.position.y + this.size > canvasSize.height) {
-            change = true;
+            this.position.y = this.size;
         }
         if (this.position.y - this.size < 0) {
-            change = true;
-        }
-        if (change) {
-            this.flipDir();
+            this.position.y = canvasSize.height - this.size;
         }
     }
 
@@ -151,6 +161,13 @@ export default class Ant {
         // update the direction the ant is facing
         this.dir = Math.atan2(this.velocity.y, this.velocity.x);
 
+        // update the speeds
+        this.calculateSpeed();
+
+        // update the view range position based on the updated
+        this.viewRangePosition.x = this.position.x + (this.viewRange * Math.cos(this.dir));
+        this.viewRangePosition.y = this.position.y + (this.viewRange * Math.sin(this.dir));
+
         // increment the frame
         this.frame++;
     }
@@ -173,7 +190,6 @@ export default class Ant {
                 break;
             }
         }
-
         // empty the list of food pieces the ant is carrying
         this.foodCarried = [];
     }
@@ -191,16 +207,12 @@ export default class Ant {
         // follow the pheromones back to either the colony or the food
         let closestPheromones = [];
 
-        // get the closest pheromones that are in front of the ant
+        // get the closest pheromones that are in the view range of the ant
         for (let i = 0; i < pheromones.length; i++) {
-            //let dx = Math.abs(pheromones[i].position.x - this.position.x);
-            //let dy = Math.abs(pheromones[i].position.y - this.position.y);
-            //if (dx < Math.abs(this.viewRange * Math.cos(this.dir)) && dy < Math.abs(this.viewRange * Math.sin(this.dir))) {
-                let dist = this.getDistance(this.position, pheromones[i].position);
-                if (dist < this.viewRange) {
-                    closestPheromones.push(pheromones[i]);
-                }
-            //}
+            let vrDist = this.getDistance(this.viewRangePosition, pheromones[i]);
+            if (vrDist < this.viewRange + pheromones[i].size) {
+                 closestPheromones.push(pheromones[i]);
+            }
         }
 
         // if some close pheromones were found
@@ -218,59 +230,54 @@ export default class Ant {
         }
 
         // no pheromones were found
-        return {x: -100, y: -100};
+        return undefined;
     }
 
     steerToPos(pos, walkAmount) {
-        console.log("in steering method with pos: ", pos);
         // if a pheromone was found then steer towards it by changing the direction and the x and y velocities
-        if (pos.x > -100 && pos.y > -100) {
+        if (pos != undefined) {
             // steer towards the pheromone by changing the direction to go towards it
             let dx = pos.x - this.position.x;
             let dy = pos.y - this.position.y;
-
-            console.log("dx: ", dx, "dy: ", dy);
 
             // the angle to the pheromone is the change in y over the change in x
             let gamma = Math.atan2(dy, dx);;
             let dTheta = (gamma - this.dir) * walkAmount;
 
-            console.log("gamma: ", gamma)
-            //console.log("dTheta: ", dTheta);
-
             // change the direction by steering towards gamma by walk amount
-            
-            //this.dir += (gamma * walkAMount);
             this.dir += dTheta;
-
-            console.log("steering dir: ", this.dir);
 
             // change the velocities to correspond with the direction
             this.calculateSpeed();
-
-            console.log("ant after speed gets calculate from dir change: ", this);
-
-        } else {
-            console.log("steer to pos else");
         }
     }
 
-    checkFoodCollision(food, distanceToFood) {
+    checkFoodCollision(food) {
+        // only works if collision and food hasn't been picked up
         // if the distance between the food center and the ant center is less than both of their radius added together, their circles are overlapping, they collided 
-        if (distanceToFood <= (food.size + this.size * 1.25)) {
+        let distanceToFood = this.getDistance(this.position, food.position);
+
+        if (distanceToFood <= (food.size + this.size * 1.25) && !food.pickedUp) {
             if (this.foodCarried.length === 0) {
+                // mark the food as picked up
+                food.pickedUp = true;
+
                 // make the ant carry the piece of food
                 this.foodCarried.push(food);
 
                 // if the ant just picked up some food, turn around and start heading back to the colony
                 this.flipDir();
 
+                // display that a collision happened between an ant and a piece of food, return the ant object
                 console.log("ant food collision: ", this);
             }
         }
     }
 
-    checkColonyCollision(foodPieces, distanceToColony, colonySize) {
+    checkColonyCollision(foodPieces, colonyPos, colonySize) {
+        // get the distance from the ant's position to the colnie's position
+        let distanceToColony = this.getDistance(this.position, colonyPos);
+
         // see if the colony circle and the ant circle overlap
         if (distanceToColony <= (this.size + colonySize)) {
             // drop the food and remove it from the food pieces
@@ -281,17 +288,18 @@ export default class Ant {
         }
     }
 
-    randomWander(walkAmount) {
+    randomWander() {
+        let randomWalkAmount = 0.03;
         // if there is no closest pheromones randomly walk
-        let randomWalk =  (Math.random() <= 0.5 ? walkAmount : -1 * walkAmount); 
-        //console.log("random walk: ", randomWalk);
+        let randomWalk =  (Math.random() <= 0.5 ? randomWalkAmount : -1 * randomWalkAmount); 
         this.dir += randomWalk;
+        this.calculateSpeed();
     }
 
     // how the ant will wander around the screen looking for pheromones
     wander(foodPheromones, homePheromones, foodPieces, colonyPos, colonySize) {
         // the amount that the ant should wander either to food or towards pheromones
-        let walkAmount = 0.3;
+        let walkAmount = 0.33;
 
         // if the ant doesn't have food
         if (this.foodCarried.length === 0) { 
@@ -303,33 +311,29 @@ export default class Ant {
             // if the ant is near some food pheromones follow them, steer the direction towards the pheromone
             let bestFood = this.findBestPheromone(foodPheromones);
 
-            if (bestFood.x != -100 && bestFood.y != -100) {
-                //console.log("steering to best food pheromone: ", bestFood);
-
+            if (bestFood != undefined) {
                 // if there is a best food pheromone, steer towards it
-                this.steerToPos(bestFood.position);
+                this.steerToPos(bestFood.position, walkAmount);
             } else {
-                //console.log("best food: ", bestFood);
                 // randomly wander looking for food or pheromones
-                this.randomWander(walkAmount);
+                this.randomWander();
             }
 
             // look at all the food pieces to see if the ant is near it
             for (let i = 0; i < foodPieces.length; i++) {
-                // get the distance between this ants position and the food piece
-                let dist = this.getDistance(this.position, foodPieces[i].position);
+                // get the distance to see if the food piece is in the view range for the ant
+                let vrDist = this.getDistance(this.viewRangePosition, foodPieces[i].position);
 
+                // make sure that the ant is only carrying 1 piece of food
                 if (this.foodCarried.length > 0) {
                     break;
-                } else if (dist < this.viewRange) {
-                    // the ant is within range of the food
-                    //console.log("within range");
-
+                } else if (vrDist < this.viewRange + foodPieces[i].size && !foodPieces[i].pickedUp) {
+                    // the ant is within range of the food, and that piece of food hasn't been picked up already
                     // steer the ant near the food if the ant is within its view range
                     this.steerToPos(foodPieces[i].position, walkAmount);
 
                     // check if the ant ran into the food after steering
-                    this.checkFoodCollision(foodPieces[i], dist);
+                    this.checkFoodCollision(foodPieces[i]);
                 }
             }
             
@@ -347,34 +351,29 @@ export default class Ant {
             
             let bestHome = this.findBestPheromone(homePheromones);
 
-            if (bestHome.x != -100 && bestHome.y != -100) {
-                //console.log("steering to best home pheromone: ", bestHome);
-
+            if (bestHome != undefined) {
                 // if there is a best home pheromone, steer towards it
-                this.steerToPos(bestHome.position);
+                this.steerToPos(bestHome.position, walkAmount);
             } else {
-                //console.log("best home: ", bestHome);
                 // randomly wander looking for food or pheromones
-                this.randomWander(walkAmount);
+                this.randomWander();
             }
 
             // when the ant collides with the colony, remove the food object from the foodPieces list and this ant's foodCarried list
-            let dist = this.getDistance(this.position, colonyPos);
+            let vrDist = this.getDistance(this.viewRangePosition, colonyPos);
 
             // see if the colony is within range, steer the ant to it if is
-            if (dist < this.viewRange) {
-                console.log("ant is holding food and colony is within range");
-
+            if (vrDist < this.viewRange + colonySize) {
                 // steer towards the colony's position
-                this.steerToPos(colonyPos);
+                this.steerToPos(colonyPos, walkAmount);
 
                 // see if the ant collided with the colony while holding the food, if it does then drop the food and remove the food from the foodPieces list
-                this.checkColonyCollision(foodPieces, dist, colonySize);
+                this.checkColonyCollision(foodPieces, colonyPos, colonySize);
             }
         }
     }
     
-    draw(ctx) {
+    draw(ctx, showViewRange) {
         // draw the ant abdomen
         ctx.beginPath();
         ctx.fillStyle = "red";
@@ -401,5 +400,15 @@ export default class Ant {
         ctx.arc(this.position.x - (3*this.size/5 * Math.cos(this.dir)), this.position.y + (3*this.size/5 * Math.sin(this.dir)), 3, 0, 2 * Math.PI);
         ctx.fill();
         ctx.closePath();
+
+        
+        // draw the viewRange for the ant
+        if (showViewRange) {
+            ctx.beginPath();
+            ctx.fillStyle = `rgba(255, 255, 255, 0.1)`;
+            ctx.arc(this.viewRangePosition.x, this.viewRangePosition.y, this.viewRange, 0, 2 * Math.PI);
+            ctx.fill();
+            ctx.closePath();
+        }
     }
 }

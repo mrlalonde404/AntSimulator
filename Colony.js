@@ -126,7 +126,7 @@ export default class Colony {
             // update the ants, let them wrap around the borders, and draw them
             this.ants[i].update(delta);
             this.ants[i].wrapEdges(canvasSize);
-            this.ants[i].draw(ctx);
+            this.ants[i].draw(ctx, true);
         }       
     }
 

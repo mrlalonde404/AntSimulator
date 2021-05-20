@@ -5,7 +5,12 @@ export default class Food {
             x: pos.x,
             y: pos.y
         };
+
+        //size of the piece of food
         this._size = 5;
+
+        // if this piece of food has been picked up already, then another ant can't pick up the food that is already being carried
+        this._pickedUp = false;
     }
 
     get position() {
@@ -16,6 +21,10 @@ export default class Food {
         return this._size;
     }
 
+    get pickedUp() {
+        return this._pickedUp;
+    }
+
     // used by the ant to change the position of the food while it is being carried
     set position(pos) {
         this._position.x = pos.x;
@@ -24,6 +33,10 @@ export default class Food {
 
     set size(s) {
         this._size = s;
+    }
+
+    set pickedUp(pu) {
+        this._pickedUp = pu;
     }
 
     draw(ctx) {
