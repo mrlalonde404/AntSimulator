@@ -22,11 +22,15 @@ const mouse = {
 };
 
 // the first colony
-const colony1 = new Colony(canvas.width/2, canvas.height/2, "sugar", 1);
+const colony1 = new Colony(canvas.width/2, canvas.height/2, "sugar", 20);
+
+// if the ants in a colony should wrap around the edges or be reflected off of them, used in the colony update
+const wrap = false;
 
 // objects lists for the walls, and food in the world
 const walls = [];
 const foodPieces = [];
+let foodInWorld = 0;
 
 // the last time stamp for the last frame; used so that delta time can be found
 let lastTime = 0.0;
@@ -34,11 +38,10 @@ let lastTime = 0.0;
 // the fps to be printed to the console
 let fps = 0.0;
 
-const numFoodWhenClicked = 20;
+const numFoodWhenClicked = 40;
 const foodSpawnRange = 30;
 
 // -- Event listeners
-
 // if the window is resized change the width and height variables appropriately
 window.addEventListener('resize', function(){
     canvas.width = window.innerWidth;
@@ -65,10 +68,9 @@ window.addEventListener('click', function(event){
         };
         foodPieces.push(new Food(pos));
     }
-    console.log("number of food pieces: ", foodPieces.length);
-    console.log("mouse: ", mouse.x, mouse.y);
+    // increment the number of food in the world by the amount just added when clicked
+    foodInWorld += numFoodWhenClicked;
 });
-
 // -- End of event listeners
 
 function setup() {
@@ -89,6 +91,12 @@ function drawFoodPieces() {
     }
 }
 
+function drawFPS() {
+    ctx.font = "20px Georgia"; 
+    ctx.fillStyle = "white"; 
+    ctx.fillText(`${fps}`, 15, 15);
+} 
+
 function gameLoop(timeStamp) {
     // get the delta time in between the frames
     let delta = timeStamp - lastTime;
@@ -103,14 +111,14 @@ function gameLoop(timeStamp) {
     //handleWalls();
 
     // update and draw the first colony
-    colony1.update(delta, canvasSize, ctx, foodPieces);
-    colony1.draw(ctx);
+    colony1.update(delta, canvasSize, ctx, foodPieces, wrap);
+    colony1.draw(ctx, foodInWorld);
 
     // draw all the food after the colony so that the food will be drawn over the ants that are holding the food pieces
     drawFoodPieces();
 
-    //fps = Math.floor(1000/delta);
-    //console.log(fps);
+    fps = Math.floor(1000/delta);
+    drawFPS();
     
     // get a new frame for the game loop
     requestAnimationFrame(gameLoop);

@@ -14,7 +14,7 @@ export default class Pheromone {
         this._toHome = th;
 
         // how long the pheromone lasts
-        this._life = 160.0;
+        this._life = 50.0;
         this._originalLife = this._life;
     }
 

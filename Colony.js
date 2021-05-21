@@ -21,7 +21,10 @@ export default class Colony {
         this._toFoodPheromones = [];
 
         // how big the colony will be drawn
-        this._size = 40;
+        this._size = 100;
+
+        // how much food has been brought back to the colony
+        this._foodCollected = 0;
     }
 
     get position() {
@@ -50,6 +53,10 @@ export default class Colony {
 
     get size() {
         return this._size;
+    }
+
+    get foodCollected() {
+        return this._foodCollected;
     }
 
     set species(sp) {
@@ -85,6 +92,10 @@ export default class Colony {
         this._size = s;
     }
 
+    set foodCollected(fc) {
+        this._foodCollected = fc;
+    }
+
     makeColonyAnts(antSize) {
         // find the radian increment for the entire circle split up by the number of ants
         let dirIncr = (Math.PI * 2) / this.numAnts;
@@ -98,7 +109,7 @@ export default class Colony {
         }
     }
 
-    update(delta, canvasSize, ctx, foodPieces) {
+    update(delta, canvasSize, ctx, foodPieces, wrap) {
          // update the pheromones and then draw them
          for (let i = 0; i < this.toFoodPheromones.length; i++){
             this.toFoodPheromones[i].update(delta);
@@ -120,21 +131,40 @@ export default class Colony {
         // update the ants and then draw them
         for (let i = 0; i < this.ants.length; i++){
             // make every ant wander, this updates the food pheromones, home pheromones, and the food pieces, no need to return since wander gets a copy of the objects refererences
-            this.ants[i].wander(this.toFoodPheromones, this.toHomePheromones, foodPieces, this.position, this.size);
+            // increment the colony's food counter by the amount of food dropped off at the colony from the wandering ant
+            this.foodCollected += this.ants[i].wander(this.toFoodPheromones, this.toHomePheromones, foodPieces, this.position, this.size);
             //console.log(this.toFoodPheromones.length, this.toHomePheromones.length, foodPieces.length);
 
             // update the ants, let them wrap around the borders, and draw them
             this.ants[i].update(delta);
-            this.ants[i].wrapEdges(canvasSize);
+
+            // decide whetehr to wrap the edges or 
+            if (wrap) {
+                this.ants[i].wrapEdges(canvasSize);
+            } else {
+                this.ants[i].reflectEdges(canvasSize);
+            }
             this.ants[i].draw(ctx, true);
         }       
     }
 
-    draw(ctx) {
+    draw(ctx, numFoodPieces) {
+        // draw the colony
         ctx.beginPath();
         ctx.fillStyle = "blue";
         ctx.arc(this.position.x, this.position.y, this.size, 0, 2 * Math.PI);
         ctx.fill();
         ctx.closePath();
+
+        ctx.font = "20px Georgia"; 
+        ctx.fillStyle = "black"; 
+
+        // draw the text for the amount of food in the world
+        ctx.fillText("Food in world:", this.position.x - this.size + 30, this.position.y - 40);
+        ctx.fillText(`${numFoodPieces}`, this.position.x - this.size + 30, this.position.y - 20);
+
+        // draw the amount of food dropped off at the colony
+        ctx.fillText("Food Collected:", this.position.x - this.size + 30, this.position.y + 10);
+        ctx.fillText(`${this.foodCollected}`, this.position.x - this.size + 30, this.position.y + 30);
     }
 }
