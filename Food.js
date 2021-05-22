@@ -1,9 +1,9 @@
 export default class Food {
-    constructor(pos) {
+    constructor(fx, fy) {
         // the position of the food should have an x and y component 
         this._position = {
-            x: pos.x,
-            y: pos.y
+            x: fx,
+            y: fy
         };
 
         //size of the piece of food

@@ -1,5 +1,5 @@
 export default class Wall {
-    constructor (wx, wy) {
+    constructor (wx, wy, s) {
         // the position of the wall should have an x and y component 
         this._position = {
            x: wx,
@@ -7,19 +7,14 @@ export default class Wall {
         };
         
         // how big the wall rect should be
-        this._width = 10;
-        this._length = 10;
+        this._size = s;
     }
     get position() {
         return this._position;
     }
 
-    get width() {
-        return this._wdith;
-    }
-
-    get length() {
-        return this._length;
+    get size() {
+        return this._size;
     }
 
     set position(pos) {
@@ -27,12 +22,8 @@ export default class Wall {
         this._position.y = pos.y;
     }
 
-    set width(w) {
-        this._width = w;
-    }
-
-    set length(l) {
-        this._length = l;
+    set size(s) {
+        this._size = s;
     }
 
     draw(ctx){

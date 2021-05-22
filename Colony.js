@@ -109,7 +109,7 @@ export default class Colony {
         }
     }
 
-    update(delta, canvasSize, ctx, foodPieces, wrap) {
+    update(delta, canvasSize, ctx, foodPieces, walls, wrap) {
          // update the pheromones and then draw them
          for (let i = 0; i < this.toFoodPheromones.length; i++){
             this.toFoodPheromones[i].update(delta);
@@ -132,7 +132,7 @@ export default class Colony {
         for (let i = 0; i < this.ants.length; i++){
             // make every ant wander, this updates the food pheromones, home pheromones, and the food pieces, no need to return since wander gets a copy of the objects refererences
             // increment the colony's food counter by the amount of food dropped off at the colony from the wandering ant
-            this.foodCollected += this.ants[i].wander(this.toFoodPheromones, this.toHomePheromones, foodPieces, this.position, this.size);
+            this.foodCollected += this.ants[i].wander(this.toFoodPheromones, this.toHomePheromones, foodPieces, walls, this.position, this.size);
             //console.log(this.toFoodPheromones.length, this.toHomePheromones.length, foodPieces.length);
 
             // update the ants, let them wrap around the borders, and draw them
@@ -151,13 +151,24 @@ export default class Colony {
     draw(ctx, numFoodPieces) {
         // draw the colony
         ctx.beginPath();
-        ctx.fillStyle = "blue";
+        ctx.beginPath();if (this.species == "fire"){
+            ctx.fillStyle = "red";
+        }
+        else if (this.species == "sugar") {
+            ctx.fillStyle = "black";
+        }
         ctx.arc(this.position.x, this.position.y, this.size, 0, 2 * Math.PI);
         ctx.fill();
         ctx.closePath();
 
         ctx.font = "20px Georgia"; 
-        ctx.fillStyle = "black"; 
+        ctx.beginPath();
+        if (this.species == "fire"){
+            ctx.fillStyle = "black";
+        }
+        else if (this.species == "sugar") {
+            ctx.fillStyle = "white";
+        }
 
         // draw the text for the amount of food in the world
         ctx.fillText("Food in world:", this.position.x - this.size + 30, this.position.y - 40);

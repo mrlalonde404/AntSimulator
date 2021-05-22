@@ -84,7 +84,7 @@ export default class Ant {
     }
 
     set species(sp) {
-        return this._species = sp;
+        this._species = sp;
     }
 
     set maxSpeed(speed) {
@@ -137,23 +137,28 @@ export default class Ant {
     }
 
     reflectEdges(canvasSize) {
-        let flip = false;
-        if (this.position.x + this.size/2 > canvasSize.width) {
-            flip = true;
+        if (this.position.x >= canvasSize.width) {
+            this.velocity.x *=  -1;
         }
-        if (this.position.x - this.size/2 < 0) {
-            flip = true;
+        if (this.position.x < 0) {
+            this.velocity.x *=  -1;
         }
-        if (this.position.y + this.size/2 > canvasSize.height) {
-            flip = true;
+        if (this.position.y >= canvasSize.height) {
+            this.velocity.y *= -1;
         }
-        if (this.position.y - this.size/2 < 0) {
-            flip = true;
+        if (this.position.y < 0) {
+            this.velocity.y *= -1;
         }
-        if (flip) {
-            // tilt the direction of the ants by 90* and give them speeds to match
-            this.dir += Math.PI/2;
-            this.calculateSpeed;
+        // get the new direction for the new velocities
+        this.dir = Math.atan2(this.velocity.y, this.velocity.x);
+    }
+
+    constrainDir() {
+        if (this.dir > 2*Math.PI){
+            this.dir -= 2*Math.PI;
+        }
+        if (this.dir < 0) {
+            this.dir += 2*Math.PI;
         }
     }
 
@@ -300,11 +305,9 @@ export default class Ant {
 
             // the angle to the pheromone is the change in y over the change in x
             let gamma = Math.atan2(dy, dx);
-            let dTheta = (gamma - this.dir);
 
-            // change the direction by steering towards gamma
+            // change the direction by steering towards gamma by walk amount
             this.dir = gamma;
-            //this.dir += dTheta;
 
             // change the velocities to correspond with the direction
             this.calculateSpeed();
@@ -323,9 +326,6 @@ export default class Ant {
 
                 // make the ant carry the piece of food
                 this.foodCarried.push(food);
-
-                // if the ant just picked up some food, turn around and start heading back to the colony
-                this.flipDir();
                 
                 // the ant collided with the food
                 return true;
@@ -343,15 +343,51 @@ export default class Ant {
         if (distanceToColony <= (this.size + colonySize)) {
             // drop the food and remove it from the food pieces
             this.dropFood(this.foodCarried[0], foodPieces)
-            
-            // if the ant just came from a food source and hit the colony, it should turn around and head back to the food source
-            this.flipDir();
 
             // the ant collided with the colony
             return true;
         }
         // the ant did not collide with the colony
         return false;
+    }
+
+    handleWallCollision(walls) {
+        for (let i = 0; i < walls.length; i++) {
+            // this x and y will be found and then its distance calculated against this ant to see if the ants size intersected the box
+            let testX = 0;
+            let testY = 0;
+
+            // if the left/right edge or the top/bottom edge should be reflected
+            let lr = false;
+            let tb = false;
+            /*
+
+            if (this.position.x < walls[i].position.x) { // test left edge
+                testX = walls[i].position.x;
+                lr = true;
+            }               
+            else if (this.position.x > walls[i].position.x+walls[i].size) { // test right edge
+                testX = walls[i].position.x+walls[i].size; 
+                lr = true;
+            }   
+            if (this.position.y < walls[i].position.y) { // test top edge
+                testY = walls[i].position.y; 
+                tb = true;
+            }              
+            else if (this.position.y > walls[i].position.y+walls[i].size) { // test bottom edge
+                testY = walls[i].position.y+walls[i].size; 
+                tb = true;
+            }   
+
+            // get the distance between the ant and the edge/corner
+            let distance = this.getDistance(this.position, {x: testX, y: testY});
+
+            if (distance <= this.size) {
+                */
+            if ((this.position.x + this.size >= walls[i].position.x  && this.position.x - this.size <= walls[i].position.x + walls[i].size) && (this.position.y +this.size >= walls[i].position.y && this.position.y - this.size <= walls[i].position.y + walls[i].size)) {
+                this.flipDir();    
+            }  
+        }
     }
 
     randomWander() {
@@ -364,7 +400,7 @@ export default class Ant {
     }
 
     // how the ant will wander around the screen looking for pheromones
-    wander(foodPheromones, homePheromones, foodPieces, colonyPos, colonySize) {
+    wander(foodPheromones, homePheromones, foodPieces, walls, colonyPos, colonySize) {
         // the amount of food dropped off at the colony
         let foodDropped = 0;
 
@@ -372,7 +408,7 @@ export default class Ant {
         if (this.foodCarried.length === 0) { 
             // look for the food leaving toHome pheromones from the colony until it finds food
             if (this.frame != 0 && this.frame % 60 == 0) {
-                homePheromones.push(new Pheromone(this.position, true));
+                homePheromones.push(new Pheromone(this.position.x, this.position.y, true, this.species));
             }
 
             // if the food is in the ant's view range
@@ -394,7 +430,11 @@ export default class Ant {
                     this.steerToPos(foodPieces[i].position);
 
                     // check if the ant ran into the food after steering
-                    this.checkFoodCollision(foodPieces[i]);
+                    let foodCollide = this.checkFoodCollision(foodPieces[i]);
+                    if (foodCollide) {
+                        // if the ant just picked up some food, turn around and start heading back to the colony
+                        this.flipDir();
+                    }
                 }
             }
             if (!foodInRange) {
@@ -416,7 +456,7 @@ export default class Ant {
 
             // leave to food pheromones(toHome == false) pheromones from the ant from the food back to the colony
             if (this.frame != 0 && this.frame % 60 == 0) {
-                foodPheromones.push(new Pheromone(this.position, false));
+                foodPheromones.push(new Pheromone(this.position.x, this.position.y, false, this.species));
             }
 
             // if the ant can see the colony
@@ -436,6 +476,9 @@ export default class Ant {
                 // see if the ant collided with the colony while holding the food, if it does then drop the food and remove the food from the foodPieces list
                 let colonyCollision = this.checkColonyCollision(foodPieces, colonyPos, colonySize);
                 if (colonyCollision) {
+                    // if the ant just came from a food source and hit the colony, it should turn around and head back to the food source
+                    this.flipDir();
+
                     // food dropped off at colony
                     foodDropped += 1;
                 }
@@ -455,6 +498,9 @@ export default class Ant {
                 }
             }
         }
+        // check if the ant collided with any walls, if it does then handle it appropriately
+        this.handleWallCollision(walls);
+
         // the amount of food dropped off at the colony by the ant
         return foodDropped;
     }
@@ -462,27 +508,47 @@ export default class Ant {
     draw(ctx, showViewRange) {
         // draw the ant abdomen
         ctx.beginPath();
-        ctx.fillStyle = "red";
+        if (this.species == "fire"){
+            ctx.fillStyle = "red";
+        }
+        else if (this.species == "sugar") {
+            ctx.fillStyle = "black";
+        }
+        
         ctx.arc(this.position.x - (this.size * 1.75 * Math.cos(this.dir)),  this.position.y - (this.size * 1.75 * Math.sin(this.dir)), this.size, 0, 2 * Math.PI);
         ctx.fill();
         ctx.closePath();
 
         // draw the ant head
-        ctx.beginPath();
-        ctx.fillStyle = "red";
+        ctx.beginPath();if (this.species == "fire"){
+            ctx.fillStyle = "red";
+        }
+        else if (this.species == "sugar") {
+            ctx.fillStyle = "black";
+        }
         ctx.arc(this.position.x, this.position.y, this.size, 0, 2 * Math.PI);
         ctx.fill();
         ctx.closePath();
 
         // draw the ant eyes
         ctx.beginPath();
-        ctx.fillStyle = "black";
+        if (this.species == "fire"){
+            ctx.fillStyle = "black";
+        }
+        else if (this.species == "sugar") {
+            ctx.fillStyle = "white";
+        }
         ctx.arc(this.position.x + (3*this.size/5 * Math.cos(this.dir)), this.position.y - (3*this.size/5 * Math.sin(this.dir)), 3, 0, 2 * Math.PI);
         ctx.fill();
         ctx.closePath();
 
         ctx.beginPath();
-        ctx.fillStyle = "black";
+        if (this.species == "fire"){
+            ctx.fillStyle = "black";
+        }
+        else if (this.species == "sugar") {
+            ctx.fillStyle = "white";
+        }
         ctx.arc(this.position.x - (3*this.size/5 * Math.cos(this.dir)), this.position.y + (3*this.size/5 * Math.sin(this.dir)), 3, 0, 2 * Math.PI);
         ctx.fill();
         ctx.closePath();
