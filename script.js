@@ -21,16 +21,16 @@ const mouse = {
 };
 
 // the first colony
-const colony1 = new Colony(canvas.width/4, canvas.height/4, "sugar", 3);
+const colony1 = new Colony(canvas.width/4, canvas.height/4, "sugar", 10);
 
 // the second colony
-const colony2 = new Colony(3*canvas.width/4, 3*canvas.height/4, "fire", 3);
+//const colony2 = new Colony(3*canvas.width/4, 3*canvas.height/4, "fire", 10);
 
 // if the ants in a colony should wrap around the edges or be reflected off of them, used in the colony update
 const wrap = false;
 
 // width and height of walls
-const wallSize = 50;
+const wallSize = 30;
 
 // objects lists for the walls, and food in the world
 const walls = [];
@@ -60,18 +60,13 @@ window.addEventListener('resize', function(){
     };
 });
  
-// make food and walls using mouse and shift and control keys
+// make food and remove walls using mouse and shift key
 window.addEventListener('click', function(event){
     // update the mouse object
     mouse.x = event.x;
     mouse.y = event.y;
 
-    // if this was a ctrl + left click, drop food
-    if (event.ctrlKey) {
-        // make the food objects at the mouse position
-        spreadFoodAtLocation(mouse);
-        
-    } else if (event.shiftKey){ // shift + click is remove wall
+    if (event.shiftKey){ // shift + click near center of wall to remove it
         // see if a wall exists at the mouse position
         let wall = wallExistsAtPos(mouse);
 
@@ -79,15 +74,9 @@ window.addEventListener('click', function(event){
         if (wall !== undefined) {
             walls.splice(wall, 1);
         } 
-    } else { // left click is add wall
-        // see if a wall exists at the mouse position
-        let wall = wallExistsAtPos(mouse);
-
-        // if the wall doesn't exist, make the wall here
-        if (wall === undefined) {
-            walls.push(new Wall(mouse.x - wallSize/2, mouse.y - wallSize/2, 50));
-            console.log(walls[walls.length-1]);
-        }
+    } else { // if this was just a left click, drop food
+        // make the food objects at the mouse position
+        spreadFoodAtLocation(mouse);   
     }
 });
 
@@ -99,13 +88,19 @@ window.addEventListener('keydown', function(event) {
 // -- End of event listeners
 
 function setup() {
-    for (let wy = 0; wy < window.innerHeight; wy+=wallSize) {
-        walls.push(new Wall(window.innerWidth/2, wy - wallSize/2, wallSize));
-    }
+    // make 2 walls down the middle vertically
+    walls.push(new Wall(window.innerWidth/2, 0, wallSize, window.innerHeight/2 - 150));
+    walls.push(new Wall(window.innerWidth/2, window.innerHeight/2 + 150, wallSize, window.innerHeight/2 - 150));
+
+    // make 2 walls down the middle horizontally
+    walls.push(new Wall(0, window.innerHeight/2, window.innerWidth/2 - 150 + wallSize/2, wallSize));
+    walls.push(new Wall(window.innerWidth/2 + 150 + wallSize/2, window.innerHeight/2, window.innerWidth/2 - 150 + wallSize/2, wallSize));
+
     // make the first colony's ants with a size of 10
     colony1.makeColonyAnts(10);
     // make the second colon'y ants with a size of 12
-    colony2.makeColonyAnts(12);
+    //colony2.makeColonyAnts(12);
+
     gameLoop();
 }
 
@@ -114,11 +109,16 @@ function wallExistsAtPos(pos){
     if (walls.length > 0) {
         for(let i = 0; i < walls.length; i++) {
             // the distance between the updated mouse position and the wall in question
-            let dx = pos.x - walls[i].position.x - wallSize/2;
-            let dy = pos.y - walls[i].position.y - wallSize/2;
+            let dx = pos.x - walls[i].position.x - walls[i].width/2;
+            let dy = pos.y - walls[i].position.y - walls[i].height/2;
             let dist = Math.sqrt(dx*dx + dy*dy);
+
+            // get the smaller side of the walls width or height
+            let side = (walls[i].width < walls[i].height) ? walls[i].width : walls[i].height;
+            console.log(dist, side);
+
             // if the distance is less than the size of a wall
-            if (dist < walls[i].size) {
+            if (dist < side) {
                 // there is a wall at this location, return its index
                 return i;
             }
@@ -181,23 +181,21 @@ function gameLoop(timeStamp) {
 
     // update the colonies
     colony1.update(delta, canvasSize, ctx, foodPieces, walls, wrap);
-    colony2.update(delta, canvasSize, ctx, foodPieces, walls, wrap);
+    //colony2.update(delta, canvasSize, ctx, foodPieces, walls, wrap);
 
     // draw all the food after the colonies so that the food will be drawn over the ants that are holding the food pieces
     drawFoodPieces();
 
     // draw the colonies
     colony1.draw(ctx, foodInWorld);
-    colony2.draw(ctx, foodInWorld);
+    //colony2.draw(ctx, foodInWorld);
 
     // draw all the walls and handle their collisions with ants
     drawWalls();
 
+    // update the fps and draw it
     fps = Math.floor(1000/delta);
     drawFPS();
-
-    // if there isn't any food in the world, pick 4 locations at random and draw them
-    //autoFeed(4);
     
     // get a new frame for the game loop
     requestAnimationFrame(gameLoop);

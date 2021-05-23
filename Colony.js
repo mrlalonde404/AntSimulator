@@ -133,7 +133,6 @@ export default class Colony {
             // make every ant wander, this updates the food pheromones, home pheromones, and the food pieces, no need to return since wander gets a copy of the objects refererences
             // increment the colony's food counter by the amount of food dropped off at the colony from the wandering ant
             this.foodCollected += this.ants[i].wander(this.toFoodPheromones, this.toHomePheromones, foodPieces, walls, this.position, this.size);
-            //console.log(this.toFoodPheromones.length, this.toHomePheromones.length, foodPieces.length);
 
             // update the ants, let them wrap around the borders, and draw them
             this.ants[i].update(delta);

@@ -136,18 +136,23 @@ export default class Ant {
         }
     }
 
+    // reflect the x or y velocity for the ant if it runs into one of the borders after offsetting it by the size of the ants head to prevent recolliding with the wall
     reflectEdges(canvasSize) {
-        if (this.position.x >= canvasSize.width) {
-            this.velocity.x *=  -1;
+        if (this.position.x + this.size >= canvasSize.width) {
+            this.position.x = canvasSize.width - this.size;
+            this.velocity.x *= (Math.random() - 1.0);
         }
-        if (this.position.x < 0) {
-            this.velocity.x *=  -1;
+        if (this.position.x - this.size < 0) {
+            this.position.x = this.size;
+            this.velocity.x *= (Math.random() - 1.0);
         }
-        if (this.position.y >= canvasSize.height) {
-            this.velocity.y *= -1;
+        if (this.position.y  + this.size >= canvasSize.height) {
+            this.position.y = canvasSize.height - this.size;
+            this.velocity.y *= (Math.random() - 1.0);
         }
-        if (this.position.y < 0) {
-            this.velocity.y *= -1;
+        if (this.position.y - this.size < 0) {
+            this.position.y = this.size;
+            this.velocity.y *= (Math.random() - 1.0);
         }
         // get the new direction for the new velocities
         this.dir = Math.atan2(this.velocity.y, this.velocity.x);
@@ -172,8 +177,11 @@ export default class Ant {
 
     // change the direction by adding pi radians to the direction to turn completely around
     flipDir() {
-        this.dir += Math.PI;
-        this.calculateSpeed();
+        //this.dir += Math.PI;
+        //this.calculateSpeed();
+        this.velocity.x *= -1;
+        this.velocity.y *= -1;
+        this.dir = Math.atan2(this.velocity.y, this.velocity.x);
     }
 
     update(delta) {
@@ -351,8 +359,23 @@ export default class Ant {
         return false;
     }
 
+    intersects(rect) {
+        let dx = Math.abs(this.position.x + this.size - rect.position.x);
+        let dy = Math.abs(this.position.y + this.size - rect.position.y);
+    
+        if (dx > (rect.width/2)) { return false; }
+        if (dy > (rect.height/2)) { return false; }
+    
+        if (dx <= (rect.width/2)) { return true; } 
+        if (dy <= (rect.height/2)) { return true; }
+    
+        let cornerDistanceSq = Math.pow(dx - rect.width/2, 2) + Math.pow(dy - rect.height/2, 2);
+        return (cornerDistanceSq <= (this.size * this.size));
+    }
+
     handleWallCollision(walls) {
         for (let i = 0; i < walls.length; i++) {
+            /*
             // this x and y will be found and then its distance calculated against this ant to see if the ants size intersected the box
             let testX = 0;
             let testY = 0;
@@ -360,33 +383,38 @@ export default class Ant {
             // if the left/right edge or the top/bottom edge should be reflected
             let lr = false;
             let tb = false;
-            /*
 
             if (this.position.x < walls[i].position.x) { // test left edge
                 testX = walls[i].position.x;
                 lr = true;
             }               
-            else if (this.position.x > walls[i].position.x+walls[i].size) { // test right edge
-                testX = walls[i].position.x+walls[i].size; 
+            else if (this.position.x > walls[i].position.x+walls[i].width) { // test right edge
+                testX = walls[i].position.x+walls[i].width; 
                 lr = true;
             }   
             if (this.position.y < walls[i].position.y) { // test top edge
                 testY = walls[i].position.y; 
                 tb = true;
             }              
-            else if (this.position.y > walls[i].position.y+walls[i].size) { // test bottom edge
-                testY = walls[i].position.y+walls[i].size; 
+            else if (this.position.y > walls[i].position.y+walls[i].height) { // test bottom edge
+                testY = walls[i].position.y+walls[i].height; 
                 tb = true;
             }   
+            */
 
-            // get the distance between the ant and the edge/corner
-            let distance = this.getDistance(this.position, {x: testX, y: testY});
+            let testX = 0;
+            let testY = 0;
 
-            if (distance <= this.size) {
-                */
-            if ((this.position.x + this.size >= walls[i].position.x  && this.position.x - this.size <= walls[i].position.x + walls[i].size) && (this.position.y +this.size >= walls[i].position.y && this.position.y - this.size <= walls[i].position.y + walls[i].size)) {
-                this.flipDir();    
-            }  
+            // which edge is closest?
+            if (this.position.x < walls)         testX = walls[i].position.x;      // test left edge
+            else if (this.position.x > walls[i].position.x + walls[i].width) testX = walls[i].position.x + walls[i].width;   // right edge
+            if (this.position.y < walls[i].position.y)         testY = walls[i].position.y;      // top edge
+            else if (this.position.y > walls[i].position.y + walls[i].height) testY = walls[i].position.y + walls[i].height;   // bottom edge
+
+            // if the distance is less than the radius, collision!
+            if (this.getDistance(this.position, {x: testX, y: testY}) <= this.size) {
+                this.flipDir();
+            }
         }
     }
 
