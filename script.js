@@ -21,10 +21,10 @@ const mouse = {
 };
 
 // the first colony
-const colony1 = new Colony(canvas.width/4, canvas.height/4, "sugar", 10);
+const colony1 = new Colony(canvas.width/4, canvas.height/4, "sugar", 4);
 
 // the second colony
-//const colony2 = new Colony(3*canvas.width/4, 3*canvas.height/4, "fire", 10);
+const colony2 = new Colony(3*canvas.width/4, 3*canvas.height/4, "fire", 4);
 
 // if the ants in a colony should wrap around the edges or be reflected off of them, used in the colony update
 const wrap = false;
@@ -89,17 +89,17 @@ window.addEventListener('keydown', function(event) {
 
 function setup() {
     // make 2 walls down the middle vertically
-    walls.push(new Wall(window.innerWidth/2, 0, wallSize, window.innerHeight/2 - 150));
-    walls.push(new Wall(window.innerWidth/2, window.innerHeight/2 + 150, wallSize, window.innerHeight/2 - 150));
+    walls.push(new Wall(window.innerWidth/2, 0, wallSize, window.innerHeight/2 - 200));
+    walls.push(new Wall(window.innerWidth/2, window.innerHeight/2 + 200, wallSize, window.innerHeight/2 - 200));
 
     // make 2 walls down the middle horizontally
-    walls.push(new Wall(0, window.innerHeight/2, window.innerWidth/2 - 150 + wallSize/2, wallSize));
-    walls.push(new Wall(window.innerWidth/2 + 150 + wallSize/2, window.innerHeight/2, window.innerWidth/2 - 150 + wallSize/2, wallSize));
+    walls.push(new Wall(0, window.innerHeight/2, window.innerWidth/2 - 200 + wallSize/2, wallSize));
+    walls.push(new Wall(window.innerWidth/2 + 200 + wallSize/2, window.innerHeight/2, window.innerWidth/2 - 200 + wallSize/2, wallSize));
 
     // make the first colony's ants with a size of 10
     colony1.makeColonyAnts(10);
     // make the second colon'y ants with a size of 12
-    //colony2.makeColonyAnts(12);
+    colony2.makeColonyAnts(12);
 
     gameLoop();
 }
@@ -181,14 +181,14 @@ function gameLoop(timeStamp) {
 
     // update the colonies
     colony1.update(delta, canvasSize, ctx, foodPieces, walls, wrap);
-    //colony2.update(delta, canvasSize, ctx, foodPieces, walls, wrap);
+    colony2.update(delta, canvasSize, ctx, foodPieces, walls, wrap);
 
     // draw all the food after the colonies so that the food will be drawn over the ants that are holding the food pieces
     drawFoodPieces();
 
     // draw the colonies
     colony1.draw(ctx, foodInWorld);
-    //colony2.draw(ctx, foodInWorld);
+    colony2.draw(ctx, foodInWorld);
 
     // draw all the walls and handle their collisions with ants
     drawWalls();

@@ -9,6 +9,12 @@ export default class Ant {
             x: ax,
             y: ay
         };
+
+        // the ants previous position before this one
+        this._previousPosition = {
+            x: this._position.x,
+            y: this._position.y
+        };
         
         // the fastest speed the ant should be allowed to move
         this._maxSpeed = 40;
@@ -40,6 +46,10 @@ export default class Ant {
 
     get position() {
         return this._position;
+    }
+
+    get previousPosition() {
+        return this._previousPosition;
     }
 
     get species() {
@@ -81,6 +91,11 @@ export default class Ant {
     set position(pos) {
         this._position.x = pos.x;
         this._position.y = pos.y;
+    }
+
+    set previousPosition(prev) {
+        this._previousPosition.x = prev.x;
+        this._previousPosition.y = prev.y;
     }
 
     set species(sp) {
@@ -139,19 +154,19 @@ export default class Ant {
     // reflect the x or y velocity for the ant if it runs into one of the borders after offsetting it by the size of the ants head to prevent recolliding with the wall
     reflectEdges(canvasSize) {
         if (this.position.x + this.size >= canvasSize.width) {
-            this.position.x = canvasSize.width - this.size;
+            this.position.x = this.previousPosition.x;
             this.velocity.x *= (Math.random() - 1.0);
         }
         if (this.position.x - this.size < 0) {
-            this.position.x = this.size;
+            this.position.x = this.previousPosition.x;
             this.velocity.x *= (Math.random() - 1.0);
         }
         if (this.position.y  + this.size >= canvasSize.height) {
-            this.position.y = canvasSize.height - this.size;
+            this.position.y = this.previousPosition.y;
             this.velocity.y *= (Math.random() - 1.0);
         }
         if (this.position.y - this.size < 0) {
-            this.position.y = this.size;
+            this.position.y = this.previousPosition.y;
             this.velocity.y *= (Math.random() - 1.0);
         }
         // get the new direction for the new velocities
@@ -177,16 +192,17 @@ export default class Ant {
 
     // change the direction by adding pi radians to the direction to turn completely around
     flipDir() {
-        //this.dir += Math.PI;
-        //this.calculateSpeed();
-        this.velocity.x *= -1;
-        this.velocity.y *= -1;
+        this.velocity.x *= (Math.random() - 1.0);
+        this.velocity.y *= (Math.random() - 1.0);
         this.dir = Math.atan2(this.velocity.y, this.velocity.x);
     }
 
     update(delta) {
         // the first frame there wont be a delta so skip it
         if (!delta) return;
+
+        // update the previosu position for the next frame with the values for the current frame
+        this.previousPosition = this.position;
 
         // otherwise, update the ant position by the ant velocity divided by the delta time
         this.position.x += this.velocity.x / delta;
@@ -359,61 +375,81 @@ export default class Ant {
         return false;
     }
 
-    intersects(rect) {
-        let dx = Math.abs(this.position.x + this.size - rect.position.x);
-        let dy = Math.abs(this.position.y + this.size - rect.position.y);
-    
-        if (dx > (rect.width/2)) { return false; }
-        if (dy > (rect.height/2)) { return false; }
-    
-        if (dx <= (rect.width/2)) { return true; } 
-        if (dy <= (rect.height/2)) { return true; }
-    
-        let cornerDistanceSq = Math.pow(dx - rect.width/2, 2) + Math.pow(dy - rect.height/2, 2);
-        return (cornerDistanceSq <= (this.size * this.size));
+    intersects(wall) {
+        let collision = false;
+
+        // the difference in the center of the ant and the center of the rectangle
+        let dx = Math.abs(this.position.x - (wall.position.x + wall.width/2));
+        let dy = Math.abs(this.position.y - (wall.position.y + wall.height/2));
+
+        // if the difference from the center of the ant to the center of the rectangle is less than half the width or height plus the ants size, there is no collision
+        if (dx > wall.width/2 + this.size) {
+            return [false];
+        }
+        if (dy > wall.height/2 + this.size) {
+            return [false];
+        }
+
+        // if there is a corner collision there is a collsiion on 2 sides of the wall
+        let cornerDistanceSq = Math.pow(dx - wall.width/2, 2) + Math.pow(dy - wall.height/2, 2);
+        if (cornerDistanceSq <= (this.size * this.size)) {
+            collision = true;
+        }
+
+        // if the difference in the x or y direction is less than half of the width or height, there is a collison
+        if (dx <= (wall.width/2)) { 
+            collision = true; 
+        } 
+        if (dy <= (wall.height/2)) { 
+            collision = true;
+        }
+
+        // get what side the collision happened on
+        let sides = [];
+        if (this.position.x < wall.position.x) { // left side = 0     
+            sides.push(0); 
+        }
+        else if (this.position.x > wall.position.x+wall.width) { // right side = 1
+            sides.push(1); 
+        }
+
+        if (this.position.y < wall.position.y) { // top side = 2
+            sides.push(2); 
+        }
+        else if (this.position.y > wall.position.y+wall.height) { // bottom side = 3
+            sides.push(3);
+        }
+
+        // return if their was a collision and what side it happened on if it was
+        return [collision, sides];
     }
 
     handleWallCollision(walls) {
         for (let i = 0; i < walls.length; i++) {
-            /*
-            // this x and y will be found and then its distance calculated against this ant to see if the ants size intersected the box
-            let testX = 0;
-            let testY = 0;
+            // if the ants head intersects with one of the walls, there is a collision
+            let collision = this.intersects(walls[i]);
 
-            // if the left/right edge or the top/bottom edge should be reflected
-            let lr = false;
-            let tb = false;
+            // if there was a collision
+            if (collision[0]) {
+                // get the sides the collision happened on
+                let sides = collision[1];
+                for (let j = 0; j < sides.length; j++) {
+                    // if a left or right collision, flip the x velocity and set the x component of the positon to the x component of the previous position
+                    if (sides[j] === 0 || sides[j] === 1){
+                        this.velocity.x *= (Math.random() - 1.0);
+                        this.position.x = this.previousPosition.x;
+                    }
 
-            if (this.position.x < walls[i].position.x) { // test left edge
-                testX = walls[i].position.x;
-                lr = true;
-            }               
-            else if (this.position.x > walls[i].position.x+walls[i].width) { // test right edge
-                testX = walls[i].position.x+walls[i].width; 
-                lr = true;
-            }   
-            if (this.position.y < walls[i].position.y) { // test top edge
-                testY = walls[i].position.y; 
-                tb = true;
-            }              
-            else if (this.position.y > walls[i].position.y+walls[i].height) { // test bottom edge
-                testY = walls[i].position.y+walls[i].height; 
-                tb = true;
-            }   
-            */
+                    // if a top or bottom collision, flip the y velocity and set the y component of the positon to the y component of the previous position
+                    if (sides[j] === 2 || sides[j] === 3){
+                        this.velocity.y *= (Math.random() - 1.0);
+                        this.position.y = this.previousPosition.y;
+                    }
+                }
 
-            let testX = 0;
-            let testY = 0;
-
-            // which edge is closest?
-            if (this.position.x < walls)         testX = walls[i].position.x;      // test left edge
-            else if (this.position.x > walls[i].position.x + walls[i].width) testX = walls[i].position.x + walls[i].width;   // right edge
-            if (this.position.y < walls[i].position.y)         testY = walls[i].position.y;      // top edge
-            else if (this.position.y > walls[i].position.y + walls[i].height) testY = walls[i].position.y + walls[i].height;   // bottom edge
-
-            // if the distance is less than the radius, collision!
-            if (this.getDistance(this.position, {x: testX, y: testY}) <= this.size) {
-                this.flipDir();
+                // update the direction the ant is facing
+                this.dir = Math.atan2(this.velocity.y, this.velocity.x);
+                break;
             }
         }
     }
@@ -454,15 +490,15 @@ export default class Ant {
                     // the ant is within range of the food, and that piece of food hasn't been picked up already
                     foodInRange = true;
 
-                    // steer the ant near the food if the ant is within its view range
-                    this.steerToPos(foodPieces[i].position);
-
                     // check if the ant ran into the food after steering
-                    let foodCollide = this.checkFoodCollision(foodPieces[i]);
-                    if (foodCollide) {
+                    if (this.checkFoodCollision(foodPieces[i])) {
                         // if the ant just picked up some food, turn around and start heading back to the colony
                         this.flipDir();
+                        break;
                     }
+
+                    // steer the ant near the food if the ant is within its view range
+                    this.steerToPos(foodPieces[i].position);
                 }
             }
             if (!foodInRange) {
@@ -502,8 +538,7 @@ export default class Ant {
                 this.steerToPos(colonyPos);
 
                 // see if the ant collided with the colony while holding the food, if it does then drop the food and remove the food from the foodPieces list
-                let colonyCollision = this.checkColonyCollision(foodPieces, colonyPos, colonySize);
-                if (colonyCollision) {
+                if (this.checkColonyCollision(foodPieces, colonyPos, colonySize)) {
                     // if the ant just came from a food source and hit the colony, it should turn around and head back to the food source
                     this.flipDir();
 
